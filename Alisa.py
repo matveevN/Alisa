@@ -3,6 +3,7 @@ import os
 import pyaudio
 from numba import jit
 import threading
+import concurrent.futures
 
 # Загрузка модели и инициализация распознавателя
 model = Model(r"/home/nikita/Downloads/vosk-model-small-ru-0.22")
@@ -39,7 +40,9 @@ def speech_recognition():
         if rec.AcceptWaveform(data):
             result = rec.Result()
            # print(f"Распознанный текст: {result}")
-            process_command(result)
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                    executor.submit(process_command(result))
+        
 
 # Создание потока для распознавания речи
 speech_thread = threading.Thread(target=speech_recognition)
