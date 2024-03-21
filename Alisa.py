@@ -1,18 +1,16 @@
 from vosk import Model, KaldiRecognizer
-from numba import njit
 import os
 import pyaudio
-
+from numba import jit
+import threading
 
 # Загрузка модели и инициализация распознавателя
 model = Model(r"/home/nikita/Downloads/vosk-model-small-ru-0.22")
 rec = KaldiRecognizer(model, 16000)
 
-# Метод для обработки команд
-@njit
-def handle_command(command):
-
-    colors = ["красный", "синий", "зелёный", "жёлтый"] # Добавьте другие цвета при необходимости
+# Метод для обработки команд с использованием Numba
+@jit(nopython=True)
+def handle_command_numba(command, colors):
     if "алиса" in command:
         for color in colors:
             if color in command:
@@ -22,20 +20,32 @@ def handle_command(command):
                     print(f"{color} в командной строке")
                 break
 
+# Функция обработки команд с использованием потоков
+def process_command(command):
+    colors = ["красный", "синий", "зелёный", "жёлтый"]
+    handle_command_numba(command, colors)
+
 # Запуск распознавания речи
 p = pyaudio.PyAudio()
 stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=8000)
 
 print("Говорите...")
-while True:
-    data = stream.read(4000)
-    if len(data) == 0:
-        break        
-    if rec.AcceptWaveform(data):
-        result = rec.Result()
-        handle_command(result)
-       # print(f"Распознанный текст: {result}")
 
+def speech_recognition():
+    while True:
+        data = stream.read(4000)
+        if len(data) == 0:
+            break
+        if rec.AcceptWaveform(data):
+            result = rec.Result()
+           # print(f"Распознанный текст: {result}")
+            process_command(result)
+
+# Создание потока для распознавания речи
+speech_thread = threading.Thread(target=speech_recognition)
+speech_thread.start()
+
+speech_thread.join() # Ждем завершения потока с распознаванием речи
 
 stream.stop_stream()
 stream.close()
