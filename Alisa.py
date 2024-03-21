@@ -1,7 +1,7 @@
 from vosk import Model, KaldiRecognizer
 import os
 import pyaudio
-from numba import jit
+from numba import njit
 import threading
 import concurrent.futures
 
@@ -10,7 +10,7 @@ model = Model(r"/home/nikita/Downloads/vosk-model-small-ru-0.22")
 rec = KaldiRecognizer(model, 16000)
 
 # Метод для обработки команд с использованием Numba
-@jit(nopython=True)
+@njit
 def handle_command_numba(command, colors):
     if "алиса" in command:
         for color in colors:
@@ -28,13 +28,13 @@ def process_command(command):
 
 # Запуск распознавания речи
 p = pyaudio.PyAudio()
-stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=8000)
+stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=16000)
 
 print("Говорите...")
 
 def speech_recognition():
     while True:
-        data = stream.read(4000)
+        data = stream.read(8000)
         if len(data) == 0:
             break
         if rec.AcceptWaveform(data):
